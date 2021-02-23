@@ -95,18 +95,21 @@ class ProductosController extends Controller{
         public function Login(Request $request){
             $respuesta=new RespuestaUsuarios();                        
             try{
-                $usuario=DB::table('Usuarios')
+                /*$usuario=DB::table('Usuarios')
                 ->where('Usuario',$request->usuario)
                 ->where('Estado',"=",true)
-                ->first();
-                /*$datos_usuario=DB::select('call IniciarSesion (?)',array($request->usuario));
-                if(count($datos_usuario)==1){*/
-                if(isset($usuario)){
+                ->first();*/
+                $datos_usuario=DB::select('call IniciarSesion (?)',array($request->usuario));
+                if(count($datos_usuario)==1){
+                //if(isset($usuario)){                
                     $datos_categorias=DB::select('call GetCategorias()');        
                     if(isset($datos_categorias)){
                         $respuesta->codigo="200";
                         $respuesta->mensaje="Peticion procesada con exito";
-                        $respuesta->usuario=$usuario;
+                        /*El procedimiento nos devuelve una lista, por eso especificamos
+                          solamente la posicion 0...
+                        */
+                        $respuesta->usuario=$datos_usuario[0];
                         $respuesta->categorias=$datos_categorias;
                     }                    
                 }else{
@@ -438,6 +441,38 @@ class ProductosController extends Controller{
                 return null;
             }            
         }
+
+        //Mantenimiento, pruebas en servidor
+        public function getUsuarios(){            
+            try{
+                $usuarios=DB::table('Usuarios as u')
+                            ->orderBy('u.IDUsuario','desc')
+                            ->get();
+                if(isset($usuarios)){
+                    return $usuarios;
+                }else{
+                    return null;
+                }
+            }catch(Exception $e){
+                return null;
+            }            
+        }
+        public function getCompras(){            
+            try{
+                //$compras=DB::select('call GetCompras ()');
+                $compras=DB::table('Ordenes as o')
+                            ->orderBy('o.NumeroOrden','desc')
+                            ->get();
+                if(isset($compras)){
+                    return $compras;
+                }else{
+                    return null;
+                }
+            }catch(Exception $e){
+                return null;
+            }            
+        }
+
     }
 
 ?>

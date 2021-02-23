@@ -34,3 +34,7 @@ Route::Get("/GetFacturaProductos/{id}","ProductosController@getFacturaProductos"
 Route::Post("/AddCategorias","ProductosController@InsertCategorias");
 Route::Post("/AddProductos","ProductosController@InsertProductos");
 Route::Post("/AddFacturaProductos","ProductosController@InsertFacturaProductos");
+
+//Pruebas del servidor
+Route::Get("/GetUsuarios","ProductosController@getUsuarios");
+Route::Get("/GetCompras","ProductosController@getCompras");
