@@ -11,4 +11,6 @@ class FacturaProductos extends Model {
 
     protected $fillable = ["IDProducto", "IDFactura", "Cantidad", "Descuento", "SubTotal"];
 
+    
+
 }

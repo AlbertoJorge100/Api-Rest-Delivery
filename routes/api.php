@@ -29,6 +29,8 @@ Route::Post("/AddUsuarios","ProductosController@InsertUsuarios");
 Route::Put("/UpdateUsuarios","ProductosController@UpdateUsuarios");
 Route::Get("/Categorias","ProductosController@SelectCategorias");
 Route::Get("/Productos/{id}","ProductosController@SelectProductos");
+Route::Get("/GetFacturas/{id}","ProductosController@getFacturas");
+Route::Get("/GetFacturaProductos/{id}","ProductosController@getFacturaProductos");
 Route::Post("/AddCategorias","ProductosController@InsertCategorias");
 Route::Post("/AddProductos","ProductosController@InsertProductos");
 Route::Post("/AddFacturaProductos","ProductosController@InsertFacturaProductos");

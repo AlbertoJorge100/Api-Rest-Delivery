@@ -6,12 +6,13 @@
     use App\Models\Existencias;    
     use App\Models\FacturaProductos;
     use App\Data\Respuesta;
+    use App\Data\RespuestaUsuarios;
     use Illuminate\Http\Request;
     use Illuminate\Support\Facades\DB;
     use Illuminate\Http\Response;
-    
+use mysqli;
 
-    class ProductosController extends Controller{
+class ProductosController extends Controller{
         /**
          * Select* from Productos;
          */
@@ -23,8 +24,46 @@
                                 ->where('Estado','=',true)
                                 ->get();*/
 
+                /*$productos = DB::table('Productos')
+                    ->join('Existencias','Productos.IDProducto','=','Existencias.IDProducto')
+                    ->select('Productos.*', 'Existencias.Existencias')    
+                    ->where('Productos.IDCategoria',$request->id)
+                    ->where('Existencias.Existencias','>=',1)
+                    ->where ('Productos.Estado','=',true)                                                        
+                    ->get();
+
+                if(isset($productos)){*/
+                $productos=DB::select('call GetProductos (?)',array($request->id));
+                if(count($productos)>=1){
+                    $respuesta->codigo="200";
+                    $respuesta->mensaje="Consulta realizada con exito";
+                    $respuesta->data=$productos;
+                }else{
+                    $respuesta->codigo="300";
+                    $respuesta->mensaje="No hay productos en esta categoria";
+                    $respuesta->data=null;
+                }              
+            }catch(Exception $e){
+                $respuesta->codigo="400";
+                $respuesta->mensaje="Error al obtener el producto".$e;
+                $respuesta->data=null;
+            }
+            return $productos;
+        }
+
+        /**
+         * Select * from facturas 
+         */
+        public function SelectFacturas(Request $request){
+            $respuesta=new Respuesta();
+            try{
+                /*$productos=DB::table('Productos')->where('IDCategoria',$request->id)
+                                ->where('Existencias','>=',1)
+                                ->where('Estado','=',true)
+                                ->get();*/
+
                 $productos = DB::table('Productos')
-                    ->leftjoin('Existencias','Productos.IDProducto','=','Existencias.IDProducto')
+                    ->join('Existencias','Productos.IDProducto','=','Existencias.IDProducto')
                     ->select('Productos.*', 'Existencias.Existencias')    
                     ->where('Productos.IDCategoria',$request->id)
                     ->where('Existencias.Existencias','>=',1)
@@ -51,27 +90,35 @@
         /**
          * Login
          * Select* from Usuarios where Usuario='asdf';
+         * Uso de procedimientos almacenados, para optimizar, la gestion de datos...
          */
         public function Login(Request $request){
-            $respuesta=new Respuesta();
-            
+            $respuesta=new RespuestaUsuarios();                        
             try{
                 $usuario=DB::table('Usuarios')
                 ->where('Usuario',$request->usuario)
                 ->where('Estado',"=",true)
                 ->first();
+                /*$datos_usuario=DB::select('call IniciarSesion (?)',array($request->usuario));
+                if(count($datos_usuario)==1){*/
                 if(isset($usuario)){
-                    $respuesta->Codigo="200";
-                    $respuesta->mensaje="Peticion procesada con exito";
-                    $respuesta->data=$usuario;
+                    $datos_categorias=DB::select('call GetCategorias()');        
+                    if(isset($datos_categorias)){
+                        $respuesta->codigo="200";
+                        $respuesta->mensaje="Peticion procesada con exito";
+                        $respuesta->usuario=$usuario;
+                        $respuesta->categorias=$datos_categorias;
+                    }                    
                 }else{
                     $respuesta->codigo="300";
-                    $respuesta->mensaje="El usuario no existe en la base de datos";
-                    $respuesta->data=null;
+                    $respuesta->mensaje="El usuario no existe en la base de datos !";
+                    $respuesta->usuario=null;
+                    $respuesta->categorias=null;
                 }
             }catch(Exception $e){
                 $respuesta->codigo="400";
-                $respuesta->mensaje="Error al obtener el usuario".$e;
+                $respuesta->mensaje="Excepcion: ".$e;
+                $respuesta->usuario=null;
             }
             return $respuesta;
         }
@@ -80,11 +127,12 @@
 
         /**
          * Insert into Usuarios...
-         * Este metodo queda suspendido temporalmente, porque 
-         * utilizare un procedimiento almacenado...
+         * 
          */
         public function InsertUsuarios(Request $request){
-            $respuesta=new Respuesta();
+            $respuesta=new RespuestaUsuarios();
+            $respuesta->codigo = "300";
+            $respuesta->usuario = null;
             $encontrado=false;
             try{
                 /**
@@ -96,9 +144,7 @@
                 ->where('Usuario',$request->Usuario)->first();
                 if(isset($_usuario)){
                     $encontrado=true;
-                    $respuesta->codigo = "300";
-                    $respuesta->mensaje = "El usuario ya esta en uso";
-                    $respuesta->data = null;                        
+                    $respuesta->mensaje = "El usuario elegido ya esta en uso !";
                 }                                    
                 if(!$encontrado){
                     $usuario=Usuarios::create([
@@ -110,17 +156,15 @@
                     ]);
                     if(isset($usuario)){
                         $respuesta->codigo="200";
-                        $respuesta->mensaje="Usuario creado con exito";
-                        $respuesta->data=$usuario;
+                        $respuesta->mensaje="Usuario creado con exito !";
+                        $respuesta->usuario=$usuario;
                     }else{
-                        $respuesta->codigo="300";
-                        $respuesta->mensaje="El usuario no fue ingresado";
-                        $respuesta->data=null;
+                        $respuesta->mensaje="El usuario no pudo ser ingresado";                        
                     }
                 }                
             }catch(Exception $e){
                 $respuesta->codigo="400";
-                $respuesta->data=null;
+                $respuesta->mensaje="Excepcion: ".$e;                
             }
             return $respuesta;
         }
@@ -130,7 +174,7 @@
          * Update Usuarios...
          */
         public function UpdateUsuarios(Request $request){
-            $respuesta=new Respuesta();
+            $respuesta=new RespuestaUsuarios();
             $encontrado=false;
             try{
                 if($request->Usuario!=""){
@@ -144,8 +188,8 @@
                     if(isset($usuario)){
                         $encontrado=true;
                         $respuesta->codigo = "300";
-                        $respuesta->mensaje = "El usuario ya esta en uso";
-                        $respuesta->data = null;                        
+                        $respuesta->mensaje = "El usuario elegido ya esta en uso !";
+                        $respuesta->usuario = null;                        
                     }                    
                 }                
 
@@ -166,16 +210,17 @@
                         $usuario->save();
                         $respuesta->codigo = "200";
                         $respuesta->mensaje = "El usuario fue actualizado con éxito ";
-                        $respuesta->data = $usuario;                    
+                        $respuesta->usuario = $usuario;                    
                     }else{
                         $respuesta->codigo = "300";
-                        $respuesta->mensaje = "No pudo actualizar el usuario";
-                        $respuesta->data=null;
+                        $respuesta->mensaje = "No se pudo actualizar el usuario";
+                        $respuesta->usuario=null;
                     }            
                 }                
             }catch(Exception $e){
                 $respuesta->codigo="400";
-                $respuesta->data=null;
+                $respuesta->mensaje="Excepcion: ".$e;
+                $respuesta->usuario=null;
             }
             return $respuesta;
         }
@@ -183,6 +228,7 @@
 
         /**
          * Select * from Categorias;
+         * Suspendido, ya que al iniciar la sesion se manda a traer de una sola vez
          */
         public function SelectCategorias(){
             $respuesta=new Respuesta();
@@ -236,6 +282,8 @@
 
         /**
          * Insert into productos...
+         * Este metodo queda suspendido temporalmente, porque 
+         * utilizare un procedimiento almacenado...
          */
         public function InsertProductos(Request $request){
             $respuesta=new Respuesta();
@@ -321,6 +369,9 @@
             return $respuesta;
         }
 
+        /**
+         * Procedimiento almacenado
+         */
         public function getIdFactura(Request $request){
             $respuesta=new Respuesta();
             try{
@@ -337,6 +388,56 @@
             return $id;
         }
 
+        /*
+         * Acceder a las ordenes que ha realizado el usuario 
+         * 
+         * select o.Fecha, (select sum(fp.cantidad) from facturaproductos fp where fp.idfactura=f.idfactura) 'Productos',
+            f.Total, o.EstadoEnvio from Ordenes o inner join facturas f on o.idorden=f.idorden where o.idusuario=3 and o.Cancelado=true;
+         */
+        public function getFacturas(Request $request){
+            $respuesta=new Respuesta();
+            try{
+                $facturas= DB::table('Ordenes as o')
+                    ->join('Facturas as f','o.IDOrden','=','f.IDOrden')
+                    ->select('f.IDFactura',
+                        DB::raw("(SELECT sum(fp.Cantidad) FROM FacturaProductos as fp
+                         WHERE fp.IDFactura=f.IDFactura) as Productos")
+                        ,'o.Fecha','o.Direccion','o.NumeroOrden', 'f.Total', 'o.EstadoEnvio')    
+                    ->where('o.IDUsuario',$request->id)
+                    ->where('o.Cancelado',true)                    
+                    ->get();
+                if(isset($facturas)){
+                    return $facturas;
+                }else{
+                    return null;
+                }
+            }catch(Exception $e){
+                return null;
+            }            
+        }
+
+        /*-- Obtenemos la lista de productos por factura 
+            select p.imagen, p.producto, p.precio, fp.cantidad, fp.subtotal  
+            from facturaproductos fp inner join productos p on fp.idproducto=p.idproducto where fp.idfactura=89;
+         * 
+         */
+        public function getFacturaProductos(Request $request){
+            $respuesta=new Respuesta();
+            try{
+                $facturas= DB::table('FacturaProductos as fp')
+                    ->join('Productos as p','fp.IDProducto','=','p.IDProducto')
+                    ->select(['p.Imagen','p.Producto','p.Precio','fp.Cantidad','fp.SubTotal'])    
+                    ->where('fp.IDFactura',$request->id)
+                    ->get();
+                if(isset($facturas)){
+                    return $facturas;
+                }else{
+                    return null;
+                }
+            }catch(Exception $e){
+                return null;
+            }            
+        }
     }
 
 ?>
