@@ -316,59 +316,95 @@ class ProductosController extends Controller{
         }
 
         /**
+         * Pagar e ingresar los productos a la factura
          * Insert into FactP...
          */
         public function InsertFacturaProductos(Request $request){
             $respuesta=new Respuesta();            
             try{
-                
-                //$insert=FacturaProductos::insert($request);
-                /*DB::table('FacturaProductos')->insert([
-                    ['email' => 'picard@example.com', 'votes' => 0],
-                    ['email' => 'janeway@example.com', 'votes' => 0],
-                ]);*/
+                $codigo="200";
+                $mensaje="";
+                //lista
+                $data=$request->ListaProductos;                
+                //Contador para, el conteo de las inserciones
+                $contador=0;                
+                $contador_existencias=0;
+                $idfactura=$data[0]['IDFactura'];                
+                $resultado_operaciones=false;
+                //Define la validez del pago
+                $resultado_pago=true;
 
-                $contador=0;
-                $data=$request->ListaProductos;
-                $idfactura=$data[0]['IDFactura'];
-                if(count($data)>0){
-                    foreach($data as $item){
-                        $insert=DB::table('FacturaProductos')->insert([                            
-                            "IDProducto"=>$item['IDProducto'],
-                            "IDFactura"=>$item['IDFactura'],
-                            "Cantidad"=>$item['Cantidad'],
-                            "Descuento"=>$item['Descuento'],
-                            "SubTotal"=>$item['SubTotal']
-                        ]); 
-                        if(isset($insert)){
-                            $contador++;
+                /**
+                 * Validar si las existencias seleccionadas son menores, a las que estan en stock
+                 * para que el usuario seleccione una cantidad valida.
+                 * Si la cantidad es mayor a la del stock; retornara una lista de los productos los 
+                 * cuales deberan ser modificados, en la aplicacion
+                 * 
+                 */
+                $pila = array();                
+                foreach($data as $item){
+                    $resp=DB::select('call ValidarExistencias (?,?)',array($item['IDProducto'], $item['Cantidad']));    
+                    if(!$resp[0]->resultado){//$resp[0]['resultado']){                        
+                        array_push($pila, array("id"=>$item['IDProducto'],//Llenando el array, a retornar
+                        "existencias"=>$resp[0]->existencias));
+                        $contador_existencias++;                        
+                        //"id"-> $item['IDProducto'], json_decode($resp[0]->existencias, true));
+                    }
+                }
+
+                if(count($data)>0 && $contador_existencias==0){
+                    //No existen cantidades de productos erroneas.
+
+                    //Pagar 
+                    //Pago aceptado xdddd
+                    //$resultado_pago=false;
+
+
+                    if($resultado_pago){
+                        //El pago fue aceptado                        
+                        foreach($data as $item){
+                            $insert=DB::table('FacturaProductos')->insert([                            
+                                "IDProducto"=>$item['IDProducto'],
+                                "IDFactura"=>$item['IDFactura'],
+                                "Cantidad"=>$item['Cantidad'],
+                                "Descuento"=>$item['Descuento'],
+                                "SubTotal"=>$item['SubTotal']
+                            ]); 
+                            if(isset($insert)){
+                                $contador++;
+                            }
                         }
-                    }
+                        if($contador==count($data)){
+                            //Paso todos los filtros, procedemos a cerrar la factura
+                            $id=DB::select('call CerrarFactura (?,?)',array($idfactura,$request->Direccion));
+                            if(isset($id)){                        
+                                $codigo="200";
+                                $mensaje="Tu orden se proceso exitosamente, puedes ver el detalle de esta en Historial de compras";                                
+                            }
+                        }
+                    }else{
+                        $codigo="500";
+                        $mensaje="El pago no fue aceptado, verifica tus datos !";
+                    }                    
+                }else if($contador_existencias>0){
+                    $codigo="300";
+                    $mensaje="Algunos productos, que has seleccionado, han disminuido sus existencias:";
+                }
+                
+                $respuesta->codigo=$codigo;
+                $respuesta->mensaje=$mensaje;
+                $respuesta->data=[];
+
+                //if($codigo.equals("300"))
+                if(strcmp($codigo,"300")==0){                    
+                    $respuesta->data=$pila;
                 }
 
-                
-                if($contador==count($data)){
-                    $id=DB::select('call CerrarFactura (?,?)',array($idfactura,$request->Direccion));
-                    if(isset($id)){
-                        $respuesta->codigo="200";
-                        $respuesta->mensaje="Peticion procesada con exito";
-                        $respuesta->data=true;
-                    }else{
-                        $respuesta->codigo="300";
-                        $respuesta->mensaje="No se pudo cerrar la compra";
-                        $respuesta->data=false;
-                    }
-                }else{
-                    $respuesta->codigo="300";
-                    $respuesta->mensaje="No se pudo enviar la lista de productos";
-                    $respuesta->data=false;
-                }
             }catch(Exception $e){
                 $respuesta->codigo="400";
                 $respuesta->mensaje="Error al obtener las categorias".$e;
-            }
-            //return redirect()->back()->with('status','Data Berhasil Di Input ');
-            //return $respuesta;
+                $respuesta->data=[];
+            }                        
             return $respuesta;
         }
 
@@ -442,6 +478,19 @@ class ProductosController extends Controller{
             }            
         }
 
+        public function getExstCategoria(Request $request){
+            try{
+                $existencias=DB::select('call ValidarExstCategoria (?)',array($request->idcategoria));
+                if(isset($existencias)){
+                    return $existencias;
+                }else{
+                    return null;
+                }
+            }catch(Exception $e){
+                return null;
+            }
+        }
+
         //Mantenimiento, pruebas en servidor
         public function getUsuarios(){            
             try{
@@ -471,7 +520,7 @@ class ProductosController extends Controller{
             }catch(Exception $e){
                 return null;
             }            
-        }
+        }                
 
     }
 

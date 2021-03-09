@@ -23,6 +23,7 @@ Route::Put("/UpdateLibros", "LibrosController@update");
 Route::Delete("/DelLibros", "LibrosController@destroy");
 //Route::Get("/Orden/{titulo}","LibrosController@prueba"); temporal
 Route::Get("/Login/{usuario}","ProductosController@Login");
+Route::Get("/getExstCategoria/{idcategoria}","ProductosController@getExstCategoria");
 Route::Get("/GetUsuario/{usuario}","ProductosController@SelectUsuario");
 Route::Get("/GetIdFactura/{IDUsuario}","ProductosController@getIdFactura");
 Route::Post("/AddUsuarios","ProductosController@InsertUsuarios");
