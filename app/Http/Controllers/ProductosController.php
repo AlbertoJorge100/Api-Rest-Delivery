@@ -94,29 +94,34 @@ class ProductosController extends Controller{
          */
         public function Login(Request $request){
             $respuesta=new RespuestaUsuarios();                        
+            //datos por defecto...
+            $respuesta->codigo="300";
+            $respuesta->mensaje="El usuario no existe en la base de datos !";
+            $respuesta->usuario=null;
+            $respuesta->categorias=null;
             try{
                 /*$usuario=DB::table('Usuarios')
                 ->where('Usuario',$request->usuario)
                 ->where('Estado',"=",true)
                 ->first();*/
-                $datos_usuario=DB::select('call IniciarSesion (?)',array($request->usuario));
+                $datos_usuario=DB::select('call IniciarSesion (?)',array($request->usuario));                
                 if(count($datos_usuario)==1){
-                //if(isset($usuario)){                
-                    $datos_categorias=DB::select('call GetCategorias()');        
-                    if(isset($datos_categorias)){
-                        $respuesta->codigo="200";
-                        $respuesta->mensaje="Peticion procesada con exito";
-                        /*El procedimiento nos devuelve una lista, por eso especificamos
-                          solamente la posicion 0...
-                        */
-                        $respuesta->usuario=$datos_usuario[0];
-                        $respuesta->categorias=$datos_categorias;
-                    }                    
-                }else{
-                    $respuesta->codigo="300";
-                    $respuesta->mensaje="El usuario no existe en la base de datos !";
-                    $respuesta->usuario=null;
-                    $respuesta->categorias=null;
+                    //El usuario existe
+                    
+                    if($datos_usuario[0]->Estado){
+                    //El usuario existe
+                    //if(isset($usuario)){                
+                        $datos_categorias=DB::select('call GetCategorias()');        
+                        if(isset($datos_categorias)){
+                            $respuesta->codigo="200";
+                            $respuesta->mensaje="Peticion procesada con exito";
+                            /*El procedimiento nos devuelve una lista, por eso especificamos
+                              solamente la posicion 0...
+                            */
+                            $respuesta->usuario=$datos_usuario[0];
+                            $respuesta->categorias=$datos_categorias;
+                        }
+                    }                                        
                 }
             }catch(Exception $e){
                 $respuesta->codigo="400";
@@ -316,10 +321,11 @@ class ProductosController extends Controller{
         }
 
         /**
+         * Cerrar la compra...
          * Pagar e ingresar los productos a la factura
          * Insert into FactP...
          */
-        public function InsertFacturaProductos(Request $request){
+        public function Pagar(Request $request){
             $respuesta=new Respuesta();            
             try{
                 $codigo="200";
@@ -353,7 +359,7 @@ class ProductosController extends Controller{
                 }
 
                 if(count($data)>0 && $contador_existencias==0){
-                    //No existen cantidades de productos erroneas.
+                    //Las cantidades seleccionadas son correctas,
 
                     //Pagar 
                     //Pago aceptado xdddd
@@ -448,7 +454,7 @@ class ProductosController extends Controller{
                 if(isset($facturas)){
                     return $facturas;
                 }else{
-                    return null;
+                    return [];
                 }
             }catch(Exception $e){
                 return null;
@@ -477,18 +483,63 @@ class ProductosController extends Controller{
                 return null;
             }            
         }
-
-        public function getExstCategoria(Request $request){
-            try{
-                $existencias=DB::select('call ValidarExstCategoria (?)',array($request->idcategoria));
-                if(isset($existencias)){
-                    return $existencias;
+        /**
+         * Este metodo es para poder consultar las existencias de las categorias
+         * al hacer pull to refresh en la activity productos
+         */
+        public function getExstCategoria(Request $request){                     
+            try{    
+                $respuesta=DB::select('call ValidarExstCategoria (?)',array($request->idcategoria));                
+                if(isset($respuesta)){
+                    return $respuesta;
                 }else{
-                    return null;
+                    return [];
                 }
             }catch(Exception $e){
                 return null;
             }
+            
+            return $respuesta;
+        }
+
+        /**
+         * Validar las existencias, al ingresar al carrito de compras validara
+         * si no han surgido cambios con las existencias de nuestros productos
+         * seleccionados
+         */
+        public function ValidarExistencias(Request $request){
+            $respuesta=new Respuesta();
+            $mensaje="Los siguientes productos fueron modificados en el servidor: ";
+            $codigo="300";            
+            
+            try{                
+                
+                $data=$request->all();
+                $pila=array();
+                $contador_existencias=0;
+                foreach($data as $item){
+                    $resp=DB::select('call ValidarExistencias (?,?)',array($item['id'], $item['existencias']));
+                    if(!$resp[0]->resultado){
+                        array_push($pila, array("id"=>$item['id'],
+                        "existencias"=>$resp[0]->existencias));
+                        $contador_existencias++;
+                    }
+                }
+                
+                if($contador_existencias==0){
+                    $codigo="200";
+                    $mensaje="Existencias correctas";                    
+                }
+            //    $respuesta=new Respuesta();
+                $respuesta->codigo=$codigo;
+                $respuesta->mensaje=$mensaje;
+                $respuesta->data=$pila;
+
+            }catch(Exception $e){
+                //return null;
+            }
+            
+            return $respuesta;
         }
 
         //Mantenimiento, pruebas en servidor
@@ -523,5 +574,36 @@ class ProductosController extends Controller{
         }                
 
     }
+
+    /*$respuesta=new Respuesta();
+    $mensaje="Algunos existencias fueron modificadas en el servidor !";
+    $codigo="300";            
+    try{                
+        $data=$request->all();
+        $pila=array();
+        $contador_existencias=0;
+        foreach($data as $item){
+            $respuesta=DB::select('call ValidarExistencias (?,?)',array($item['IDProducto'], $item['Cantidad']));
+            if(!$respuesta[0]->resultado){
+                array_push($pila, array("id"=>$item['IDProducto'],
+                 "existencias"=>$respuesta[0]->existencias));
+                 $contador_existencias++;
+            }
+        }
+        
+        if($contador_existencias==0){
+            $codigo="200";
+            $mensaje="Existencias correctas";                    
+        }
+
+        $respuesta->codigo=$codigo;
+        $respuesta->mensaje=$mensaje;            
+        $respuesta->data=$pila;
+
+    }catch(Exception $e){
+        return null;
+    }
+    
+    return $respuesta;*/
 
 ?>

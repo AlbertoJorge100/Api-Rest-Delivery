@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'mysql'),
+    'default' => env('DB_CONNECTION','mysql'),
 
     /*
     |--------------------------------------------------------------------------
@@ -32,6 +32,8 @@ return [
     | choice installed on your machine before you begin development.
     |
     */
+    /* En el archivo .env del sistema se aguardan las credenciales pero si no existieran ahi entonces
+    viene a buscar aqui las variables por */
 
     'connections' => [
 
