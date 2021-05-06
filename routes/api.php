@@ -40,8 +40,8 @@ Route::Get("/getExstCategoria/{idcategoria}","ProductosController@getExstCategor
 //Route::Get("/getValidarExistencias","ProductosController@getExstCategoria");
 Route::Get("/GetUsuario/{usuario}","ProductosController@SelectUsuario");
 Route::Get("/GetIdFactura/{IDUsuario}","ProductosController@getIdFactura");
-Route::Post("/AddUsuarios","ProductosController@InsertUsuarios");
-Route::Put("/UpdateUsuarios","ProductosController@UpdateUsuarios");
+Route::Post("/AddCliente","ProductosController@InsertCliente");
+Route::Put("/UpdateCliente","ProductosController@UpdateCliente");
 Route::Get("/Categorias","ProductosController@SelectCategorias");
 Route::Get("/Productos/{id}","ProductosController@SelectProductos");
 Route::Get("/GetFacturas/{id}","ProductosController@getFacturas");

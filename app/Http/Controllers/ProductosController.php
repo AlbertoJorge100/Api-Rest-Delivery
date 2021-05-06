@@ -3,6 +3,7 @@
     use App\Models\Usuarios;
     use App\Models\Productos;
     use App\Models\Categorias;    
+    use App\Models\Clientes;    
     use App\Models\Existencias;    
     use App\Models\FacturaProductos;
     use App\Data\Respuesta;
@@ -97,7 +98,7 @@ class ProductosController extends Controller{
             //datos por defecto...
             $respuesta->codigo="300";
             $respuesta->mensaje="El usuario no existe en la base de datos !";
-            $respuesta->usuario=null;
+            $respuesta->cliente=null;
             $respuesta->categorias=null;
             try{
                 /*$usuario=DB::table('Usuarios')
@@ -108,7 +109,7 @@ class ProductosController extends Controller{
                 if(count($datos_usuario)==1){
                     //El usuario existe
                     
-                    if($datos_usuario[0]->Estado){
+                    if($datos_usuario[0]->Activo){
                     //El usuario existe
                     //if(isset($usuario)){                
                         $datos_categorias=DB::select('call GetCategorias()');        
@@ -118,7 +119,7 @@ class ProductosController extends Controller{
                             /*El procedimiento nos devuelve una lista, por eso especificamos
                               solamente la posicion 0...
                             */
-                            $respuesta->usuario=$datos_usuario[0];
+                            $respuesta->cliente=$datos_usuario[0];
                             $respuesta->categorias=$datos_categorias;
                         }
                     }                                        
@@ -126,7 +127,7 @@ class ProductosController extends Controller{
             }catch(Exception $e){
                 $respuesta->codigo="400";
                 $respuesta->mensaje="Excepcion: ".$e;
-                $respuesta->usuario=null;
+                $respuesta->cliente=null;
             }
             return $respuesta;
         }
@@ -134,20 +135,20 @@ class ProductosController extends Controller{
 
 
         /**
-         * Insert into Usuarios...
+         * Insert into Usuarios clientes...
          * 
          */
-        public function InsertUsuarios(Request $request){
+        public function InsertCliente(Request $request){
             $respuesta=new RespuestaUsuarios();
             $respuesta->codigo = "300";
-            $respuesta->usuario = null;
+            $respuesta->cliente = null;
             $encontrado=false;
             try{
                 /**
                  * Si el request trae actualizacion de usuario, necesitamos saber que el usuario no
                  * exista para que podamos modificarlo,
                  */
-                $_usuario=DB::table('Usuarios')
+                $_usuario=DB::table('Clientes')
                 ->select('Usuario')
                 ->where('Usuario',$request->Usuario)->first();
                 if(isset($_usuario)){
@@ -155,7 +156,7 @@ class ProductosController extends Controller{
                     $respuesta->mensaje = "El usuario elegido ya esta en uso !";
                 }                                    
                 if(!$encontrado){
-                    $usuario=Usuarios::create([
+                    $usuario=Clientes::create([
                         "Nombres"=>$request->Nombres,
                         "Correo"=>$request->Correo,
                         "Telefono"=>$request->Telefono,
@@ -165,7 +166,7 @@ class ProductosController extends Controller{
                     if(isset($usuario)){
                         $respuesta->codigo="200";
                         $respuesta->mensaje="Usuario creado con exito !";
-                        $respuesta->usuario=$usuario;
+                        $respuesta->cliente=$usuario;
                     }else{
                         $respuesta->mensaje="El usuario no pudo ser ingresado";                        
                     }
@@ -181,28 +182,31 @@ class ProductosController extends Controller{
         /**
          * Update Usuarios...
          */
-        public function UpdateUsuarios(Request $request){
+        public function UpdateCliente(Request $request){
             $respuesta=new RespuestaUsuarios();
             $encontrado=false;
             try{
                 if($request->Usuario!=""){
                     /**
-                     * Si el request trae actualizacion de usuario, necesitamos saber que el usuario no
+                     * Si el request trae actualizacion de nombre de usuario,
+                     *  necesitamos saber que el usuario no
                      * exista para que podamos modificarlo,
                      */
-                    $usuario=DB::table('Usuarios')
+                    $usuario=DB::table('Clientes')
                     ->select('Usuario')
                     ->where('Usuario',$request->Usuario)->first();
                     if(isset($usuario)){
+                        //El usuario existe
                         $encontrado=true;
                         $respuesta->codigo = "300";
                         $respuesta->mensaje = "El usuario elegido ya esta en uso !";
-                        $respuesta->usuario = null;                        
+                        $respuesta->cliente = null;                        
                     }                    
                 }                
 
                 if(!$encontrado){
-                    $usuario=Usuarios::find($request->IDUsuario);
+                    //El nombre de usuario no fue encontrado en la base de datos...
+                    $usuario=Clientes::find($request->IDCliente);
                     if(isset($usuario)){
                         if($request->Nombres!=""){
                             $usuario->Nombres=$request->Nombres;
@@ -218,17 +222,17 @@ class ProductosController extends Controller{
                         $usuario->save();
                         $respuesta->codigo = "200";
                         $respuesta->mensaje = "El usuario fue actualizado con éxito ";
-                        $respuesta->usuario = $usuario;                    
+                        $respuesta->cliente = $usuario;                    
                     }else{
                         $respuesta->codigo = "300";
                         $respuesta->mensaje = "No se pudo actualizar el usuario";
-                        $respuesta->usuario=null;
+                        $respuesta->cliente=null;
                     }            
                 }                
             }catch(Exception $e){
                 $respuesta->codigo="400";
                 $respuesta->mensaje="Excepcion: ".$e;
-                $respuesta->usuario=null;
+                $respuesta->cliente=null;
             }
             return $respuesta;
         }
@@ -448,7 +452,7 @@ class ProductosController extends Controller{
                         DB::raw("(SELECT sum(fp.Cantidad) FROM FacturaProductos as fp
                          WHERE fp.IDFactura=f.IDFactura) as Productos")
                         ,'o.Fecha','o.Direccion','o.NumeroOrden', 'f.Total', 'o.EstadoEnvio')    
-                    ->where('o.IDUsuario',$request->id)
+                    ->where('o.IDCliente',$request->id)
                     ->where('o.Cancelado',true)                    
                     ->get();
                 if(isset($facturas)){

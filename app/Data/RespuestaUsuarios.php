@@ -5,7 +5,7 @@
     class RespuestaUsuarios  extends Model{
         public $Codigo;
         public $Mensaje;
-        public $Usuario;
+        public $Cliente;
         public $Categorias;
     }    
 

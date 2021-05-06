@@ -79,8 +79,8 @@ return [
     | to any of the locales which will be supported by the application.
     |
     */
-
-    'locale' => 'en',
+    //Cambiar la carpeta de idiomas donde tomara las validaciones de formularios
+    'locale' => 'es',
 
     /*
     |--------------------------------------------------------------------------
