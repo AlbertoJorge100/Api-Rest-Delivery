@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Data\RespuestaExst;
 use Illuminate\Support\Facades\DB;
 use App\Models\Categorias;
 use Illuminate\Http\Request;
@@ -64,48 +66,81 @@ class CursoController extends Controller
     }
 
     public function edit(Productos $producto){
-        //Haremos una excepcion de la busqueda por id...
-        /* $existencias=DB::table('Existencias as e')
-            ->select('e.Existencias')
-            ->join('Productos as p','e.IDProducto','=','p.IDProducto')
-            ->where('e.IDProducto',$producto->IDProducto)->get();        
-        $id=$existencias->first(); */
-        
-        return view('cursos.edit',compact('producto'));        
-        //return $producto;
-    }
-    public function update(Request $request, Productos $producto){        
-        $request->validate([
-            'Producto'=>'required',
-            'Precio'=>'required',
-            'Existencias'=>'required',
-            'Imagen'=>'required',
-            'Descripcion'=>'required',            
-        ]);
-        
         try{
-            $exst=DB::table('Existencias')            
-            ->select('Existencias')
-            ->where('IDProducto',$producto->IDProducto)
-            ->get();            
+            //LLenando las existencias del producto con las existencias en la tabla existencias...
+            $existencias=DB::table('Existencias as e')
+            ->select('e.Existencias')              
+            ->where('e.IDProducto', $producto->IDProducto)->first();      
+            //Existencias del producto, existencias de la tabla               
+            //$producto->Existencias=$exst->Existencias;            
+            
+            return view('cursos.edit',['producto'=>$producto, 'existencias'=>$existencias]);        
         }catch(Exception $e){
-            echo $e;
+            return  $e;
         }        
-        /* Existencias::where('IDProducto',$request->IDProducto)
-            ->update(['Existencias'=>$request->Existencias]); 
-
-        $producto->Producto=$request->Producto;
-        $producto->Precio=$request->Precio;
-        $producto->Existencias=$request->Existencias;
-        $producto->Imagen=$request->Imagen;
-        $producto->Descripcion=$request->Descripcion;
-        //$producto->IDCategoria=$request->IDCategoria;        
-        $producto->Estado=$request->Estado;
-        $producto->save();
-        
-        return redirect()->route('home.home');
-        */
-        return $exst;
+        //return $request->escribir;
+    }
+    public function update(Request $request, Productos $producto){  
+        //Invocar funciones dentro de otra funcion...
+        //$fde=$this->delete($producto);
+        $request->validate([
+            'producto'=>'required',
+            'precio'=>'required',
+            //'Existencias'=>'required',
+            'imagen'=>'required',
+            'descripcion'=>'required',            
+        ]); 
+        $contador=0;
+        try{            
+            if(strcmp($request->producto,$producto->Producto)!=0){ 
+                $contador++;
+            }
+            if(strcmp($request->precio,$producto->Precio)!=0){ 
+                $contador++;
+            }
+            if(strcmp($request->imagen,$producto->Imagen)!=0){ 
+                $contador++;
+            }
+            if(strcmp($request->descripcion,$producto->Descripcion)!=0){ 
+                $contador++;
+            }
+            if($request->activo!=$producto->Activo){
+                $contador++;
+            }            
+            //Validar si el campo de existencias esta vacio
+            if(!empty($_POST["add_existencias"])){
+                //sumando las existencias
+                $exst=0;
+                switch($request->operacion){
+                    case "suma":
+                        $exst=($request->existencias+$request->add_existencias);
+                        break;
+                    case "resta":
+                        $exst=($request->existencias-$request->add_existencias);
+                        if($exst<0){
+                            $exst=0;
+                        }
+                        break;
+                }                
+                DB::table('Existencias as e')
+                ->where('e.IDProducto', $producto->IDProducto)
+                ->update(['e.Existencias' => $exst]);             
+            }
+            if($contador>0){
+                $producto->Producto=$request->producto;
+                $producto->Precio=$request->precio;
+                $producto->Imagen=$request->imagen;
+                $producto->Descripcion=$request->descripcion;
+                //$producto->IDCategoria=$request->IDCategoria;        
+                $producto->Activo=$request->activo;
+                $producto->save();
+            }                    
+        }catch(Exception $e){
+            return $e;
+        } 
+        //return $request->existencias;        
+        //return $producto;
+        return redirect()->route('home.home');            
     }
 
     /*

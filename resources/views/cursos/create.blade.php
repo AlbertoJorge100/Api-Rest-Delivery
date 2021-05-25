@@ -14,7 +14,7 @@
         @enderror                
         <br/>
         <br>
-        <input type="number" name="Precio" placeholder="precio" value="{{old('Precio')}}">
+        <input type="number" name="Precio" placeholder="precio" value="{{old('Precio')}}" step="0.01" name="amount" placeholder="0.00">
         @error('Precio')
             <br>
             <small>*{{$message}}</small>            
